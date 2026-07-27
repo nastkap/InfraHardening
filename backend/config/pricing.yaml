@@ -1,0 +1,286 @@
+# Pricing Plans Configuration
+# InfraHardening Managed Security Services
+
+plans:
+  basic:
+    name: "Basic Plan"
+    description: "Essential security infrastructure for small businesses"
+    monthly_price: 500
+    annual_price: 5000
+    annual_discount: 17  # 17% discount for annual
+    currency: "PLN"
+    tier: "basic"
+    
+    limits:
+      max_vms: 3
+      max_users: 5
+      max_storage_gb: 100
+      max_bandwidth_gb: 500
+    
+    features:
+      infrastructure:
+        - "3 Virtual Machines (AlmaLinux/Ubuntu)"
+        - "Virtual Network with isolated subnets"
+        - "Network Security Groups with firewall rules"
+        - "SSH key-based authentication"
+        - "Basic system hardening"
+      
+      security:
+        - "SSH hardening (disable password auth)"
+        - "Firewall configuration (firewalld/ufw)"
+        - "Fail2ban brute-force protection"
+        - "Basic audit logging"
+        - "Monthly security reports"
+      
+      monitoring:
+        - "Real-time system monitoring"
+        - "CPU, memory, disk metrics"
+        - "Network connectivity monitoring"
+        - "Grafana dashboards"
+        - "Email alerts (threshold-based)"
+      
+      support:
+        - "Email support (9:00-17:00 CET)"
+        - "48-hour response time"
+        - "Community documentation"
+        - "Basic troubleshooting"
+      
+      backup:
+        - "Manual backup configuration"
+        - "7-day retention"
+    
+    addons:
+      additional_vm:
+        name: "Additional VM"
+        price: 200
+        unit: "monthly"
+      additional_storage:
+        name: "Additional Storage (100GB)"
+        price: 50
+        unit: "monthly"
+      priority_support:
+        name: "Priority Support"
+        price: 150
+        unit: "monthly"
+
+  pro:
+    name: "Professional Plan"
+    description: "Advanced security infrastructure for growing businesses"
+    monthly_price: 1500
+    annual_price: 15000
+    annual_discount: 17
+    currency: "PLN"
+    tier: "pro"
+    
+    limits:
+      max_vms: 10
+      max_users: 20
+      max_storage_gb: 500
+      max_bandwidth_gb: 2000
+    
+    features:
+      infrastructure:
+        - "10 Virtual Machines (AlmaLinux/Ubuntu)"
+        - "Virtual Network with isolated subnets"
+        - "Network Security Groups with advanced rules"
+        - "SSH key-based authentication"
+        - "Advanced system hardening"
+        - "Load balancer configuration"
+        - "Application gateway"
+      
+      security:
+        - "SSH hardening (disable password auth)"
+        - "Advanced firewall configuration"
+        - "Fail2ban with custom rules"
+        - "Comprehensive audit logging"
+        - "Weekly security reports"
+        - "Vulnerability scanning"
+        - "Security patch management"
+      
+      monitoring:
+        - "Real-time system monitoring"
+        - "CPU, memory, disk, network metrics"
+        - "Advanced network connectivity monitoring"
+        - "Custom Grafana dashboards"
+        - "Email and Slack alerts"
+        - "Performance analytics"
+        - "Uptime monitoring (99.5% SLA)"
+      
+      support:
+        - "Chat support (24/7)"
+        - "12-hour response time"
+        - "Priority ticket handling"
+        - "Video consultations"
+        - "Technical documentation"
+      
+      backup:
+        - "Automated daily backups"
+        - "30-day retention"
+        - "Disaster recovery planning"
+      
+      ssl:
+        - "SSL certificate management"
+        - "Let's Encrypt integration"
+        - "Certificate auto-renewal"
+
+    addons:
+      additional_vm:
+        name: "Additional VM"
+        price: 150
+        unit: "monthly"
+      additional_storage:
+        name: "Additional Storage (100GB)"
+        price: 40
+        unit: "monthly"
+      dedicated_support:
+        name: "Dedicated Support Engineer"
+        price: 500
+        unit: "monthly"
+      custom_integration:
+        name: "Custom Integration"
+        price: 1000
+        unit: "one-time"
+
+  enterprise:
+    name: "Enterprise Plan"
+    description: "Comprehensive security infrastructure for large organizations"
+    monthly_price: 3000
+    annual_price: 30000
+    annual_discount: 17
+    currency: "PLN"
+    tier: "enterprise"
+    
+    limits:
+      max_vms: 50
+      max_users: 100
+      max_storage_gb: 2000
+      max_bandwidth_gb: 10000
+    
+    features:
+      infrastructure:
+        - "50 Virtual Machines (AlmaLinux/Ubuntu)"
+        - "Multi-region virtual networks"
+        - "Advanced Network Security Groups"
+        - "SSH key-based authentication with rotation"
+        - "Enterprise-grade system hardening"
+        - "Load balancers (multiple)"
+        - "Application Gateway WAF"
+        - "VPN Gateway"
+        - "ExpressRoute integration"
+      
+      security:
+        - "Enterprise SSH hardening"
+        - "Advanced firewall with custom rules"
+        - "Fail2ban with enterprise rules"
+        - "SIEM integration"
+        - "Daily security reports"
+        - "Advanced vulnerability scanning"
+        - "Automated security patch management"
+        - "Compliance reporting (GDPR, ISO 27001)"
+        - "Penetration testing (quarterly)"
+      
+      monitoring:
+        - "Enterprise-grade monitoring"
+        - "Full stack metrics"
+        - "Advanced network monitoring"
+        - "Custom Grafana dashboards"
+        - "Multi-channel alerts (Email, Slack, SMS, PagerDuty)"
+        - "Advanced analytics and ML-based anomaly detection"
+        - "Uptime monitoring (99.9% SLA)"
+        - "Performance optimization"
+      
+      support:
+        - "24/7 phone and chat support"
+        - "2-hour response time"
+        - "Dedicated account manager"
+        - "On-site support (quarterly)"
+        - "Custom training sessions"
+        - "Technical account management"
+      
+      backup:
+        - "Automated hourly backups"
+        - "90-day retention"
+        - "Geo-redundant backup storage"
+        - "Disaster recovery testing"
+      
+      ssl:
+        - "Enterprise SSL certificate management"
+        - "Custom SSL certificates"
+        - "Certificate auto-renewal"
+        - "Multi-domain support"
+      
+      sla:
+        - "99.9% uptime SLA"
+        - "Financial guarantees"
+        - "Priority incident handling"
+
+    addons:
+      additional_vm:
+        name: "Additional VM"
+        price: 100
+        unit: "monthly"
+      additional_storage:
+        name: "Additional Storage (100GB)"
+        price: 30
+        unit: "monthly"
+      dedicated_engineer:
+        name: "Dedicated DevOps Engineer"
+        price: 2000
+        unit: "monthly"
+      custom_development:
+        name: "Custom Development"
+        price: 2000
+        unit: "one-time"
+      compliance_audit:
+        name: "Compliance Audit"
+        price: 5000
+        unit: "one-time"
+
+# Trial Configuration
+trial:
+  enabled: true
+  duration_days: 14
+  plan: "basic"
+  auto_convert_to_paid: true
+  trial_limits:
+    max_vms: 1
+    max_users: 2
+
+# Billing Configuration
+billing:
+  currency: "PLN"
+  tax_rate: 23  # VAT rate in Poland
+  payment_methods:
+    - "bank_transfer"
+    - "credit_card"
+    - "paypal"
+  invoice_days_before_due: 14
+  late_fee_percentage: 5
+  late_fee_max_days: 30
+
+# Discount Configuration
+discounts:
+  annual: 17  # 17% discount for annual payments
+  multi_year:
+    2_years: 20
+    3_years: 25
+  nonprofit: 15
+  startup: 10  # For startups < 2 years old
+  volume:
+    threshold: 5  # Number of customers
+    discount: 10
+
+# Usage Pricing (for overages)
+usage_pricing:
+  cpu_overage:
+    unit: "vCPU-hour"
+    price: 0.05
+  memory_overage:
+    unit: "GB-hour"
+    price: 0.02
+  storage_overage:
+    unit: "GB-month"
+    price: 0.50
+  bandwidth_overage:
+    unit: "GB"
+    price: 0.10
