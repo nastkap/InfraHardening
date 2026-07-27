@@ -1,0 +1,15 @@
+# Copy this file to terraform.tfvars and update with your values
+
+resource_group_name  = "infra-hardening-rg"
+location            = "West Europe"
+prefix              = "infrahard"
+environment         = "prod"
+vm_count            = 3
+vm_size             = "Standard_B2s"
+admin_username      = "azureuser"
+ssh_public_key_path = "~/.ssh/id_rsa.pub"
+allowed_ssh_cidr    = "YOUR_IP/32"
+vm_image_publisher  = "almalinux"
+vm_image_offer      = "almalinux-hpc"
+vm_image_sku        = "8_8"
+boot_diagnostics_storage_account = ""

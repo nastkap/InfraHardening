@@ -1,0 +1,87 @@
+---
+- name: Configure sysctl - IP forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '0'
+    state: present
+    reload: yes
+
+- name: Configure sysctl - ICMP redirects
+  sysctl:
+    name: "{{ item }}"
+    value: '0'
+    state: present
+    reload: yes
+  loop:
+    - net.ipv4.conf.all.accept_redirects
+    - net.ipv4.conf.default.accept_redirects
+    - net.ipv4.conf.all.send_redirects
+    - net.ipv4.conf.default.send_redirects
+
+- name: Configure sysctl - source routing
+  sysctl:
+    name: "{{ item }}"
+    value: '0'
+    state: present
+    reload: yes
+  loop:
+    - net.ipv4.conf.all.accept_source_route
+    - net.ipv4.conf.default.accept_source_route
+
+- name: Configure sysctl - SYN cookies
+  sysctl:
+    name: net.ipv4.tcp_syncookies
+    value: '1'
+    state: present
+    reload: yes
+
+- name: Configure sysctl - log martian packets
+  sysctl:
+    name: "{{ item }}"
+    value: '1'
+    state: present
+    reload: yes
+  loop:
+    - net.ipv4.conf.all.log_martians
+    - net.ipv4.conf.default.log_martians
+
+- name: Disable unused filesystems
+  lineinfile:
+    path: /etc/modprobe.d/disable-filesystems.conf
+    line: "install {{ item }} /bin/true"
+    create: yes
+    mode: '0644'
+  loop:
+    - cramfs
+    - freevxfs
+    - jffs2
+    - hfs
+    - hfsplus
+    - squashfs
+    - udf
+
+- name: Configure fail2ban
+  template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: '0644'
+  notify: restart fail2ban
+
+- name: Start and enable fail2ban
+  service:
+    name: fail2ban
+    state: started
+    enabled: yes
+
+- name: Configure auditd
+  lineinfile:
+    path: /etc/audit/auditd.conf
+    regexp: '^max_log_file'
+    line: 'max_log_file = 8'
+  notify: restart auditd
+
+- name: Start and enable auditd
+  service:
+    name: auditd
+    state: started
+    enabled: yes

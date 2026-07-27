@@ -1,0 +1,119 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+jobs:
+  deploy:
+    name: Deploy to Azure
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'prod' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Configure Azure credentials
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Terraform Init
+        run: |
+          cd terraform
+          terraform init \
+            -backend-config="resource_group_name=${{ secrets.TF_STATE_RG }}" \
+            -backend-config="storage_account_name=${{ secrets.TF_STATE_SA }}" \
+            -backend-config="container_name=terraform-state" \
+            -backend-config="key=${{ github.event.inputs.environment || 'prod' }}.terraform.tfstate"
+
+      - name: Terraform Plan
+        run: |
+          cd terraform
+          terraform plan -out=tfplan \
+            -var="environment=${{ github.event.inputs.environment || 'prod' }}"
+
+      - name: Terraform Apply
+        run: |
+          cd terraform
+          terraform apply -auto-approve tfplan
+
+      - name: Get Terraform Outputs
+        run: |
+          cd terraform
+          terraform output -json > ../terraform-outputs.json
+
+      - name: Upload Terraform Outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs
+          path: terraform-outputs.json
+
+      - name: Setup Ansible
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: pip install ansible
+
+      - name: Generate Ansible Inventory
+        run: |
+          cd scripts/bash
+          chmod +x deploy_infrastructure.sh
+          ./deploy_infrastructure.sh ansible
+
+      - name: Run Ansible Playbook
+        run: |
+          cd ansible
+          ansible-playbook -i inventory/hosts.ini site.yml -v
+
+      - name: Build Go Agent
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Build and Deploy Agent
+        run: |
+          cd go-agent
+          go build -o agent main.go
+          cd ../ansible
+          ansible all -i inventory/hosts.ini -m copy \
+            -a "src=../go-agent/agent dest=/usr/local/bin/agent mode=0755"
+          ansible all -i inventory/hosts.ini -m copy \
+            -a "src=../go-agent/systemd/agent.service dest=/etc/systemd/system/agent.service"
+          ansible all -i inventory/hosts.ini -m systemd \
+            -a "name=agent daemon_reload=yes enabled=yes state=started"
+
+      - name: Health Check
+        run: |
+          cd scripts/bash
+          chmod +x health_check.sh
+          ./health_check.sh
+
+      - name: Notify Deployment
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Deployment to ${{ github.event.inputs.environment || 'prod' }} completed'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

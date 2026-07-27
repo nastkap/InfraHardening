@@ -1,0 +1,81 @@
+---
+- name: Install firewalld (RedHat/CentOS/AlmaLinux)
+  yum:
+    name: firewalld
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install ufw (Debian/Ubuntu)
+  apt:
+    name: ufw
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Start and enable firewalld (RedHat/CentOS/AlmaLinux)
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Configure firewalld - allow SSH
+  firewalld:
+    service: ssh
+    permanent: yes
+    state: enabled
+    immediate: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Configure firewalld - allow HTTP
+  firewalld:
+    service: http
+    permanent: yes
+    state: enabled
+    immediate: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Configure firewalld - allow HTTPS
+  firewalld:
+    service: https
+    permanent: yes
+    state: enabled
+    immediate: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Configure ufw - default deny incoming
+  ufw:
+    direction: incoming
+    policy: deny
+  when: ansible_os_family == "Debian"
+
+- name: Configure ufw - default allow outgoing
+  ufw:
+    direction: outgoing
+    policy: allow
+  when: ansible_os_family == "Debian"
+
+- name: Configure ufw - allow SSH
+  ufw:
+    rule: allow
+    port: '22'
+    proto: tcp
+  when: ansible_os_family == "Debian"
+
+- name: Configure ufw - allow HTTP
+  ufw:
+    rule: allow
+    port: '80'
+    proto: tcp
+  when: ansible_os_family == "Debian"
+
+- name: Configure ufw - allow HTTPS
+  ufw:
+    rule: allow
+    port: '443'
+    proto: tcp
+  when: ansible_os_family == "Debian"
+
+- name: Enable ufw
+  ufw:
+    state: enabled
+  when: ansible_os_family == "Debian"

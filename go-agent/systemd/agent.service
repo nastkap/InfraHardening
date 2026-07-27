@@ -1,0 +1,15 @@
+[Unit]
+Description=Infrastructure Hardening Agent
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/agent
+Restart=always
+RestartSec=5
+Environment=AGENT_PORT=8080
+Environment=AGENT_CHECK_INTERVAL=30
+
+[Install]
+WantedBy=multi-user.target

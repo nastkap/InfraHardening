@@ -1,0 +1,35 @@
+---
+- name: Create admin user
+  user:
+    name: "{{ admin_user }}"
+    shell: /bin/bash
+    groups: sudo,wheel
+    append: yes
+    state: present
+
+- name: Set up sudo access for admin user (Debian/Ubuntu)
+  lineinfile:
+    path: /etc/sudoers.d/{{ admin_user }}
+    line: "{{ admin_user }} ALL=(ALL) NOPASSWD:ALL"
+    create: yes
+    mode: '0440'
+    validate: 'visudo -cf %s'
+  when: ansible_os_family == "Debian"
+
+- name: Set up sudo access for admin user (RedHat/CentOS/AlmaLinux)
+  lineinfile:
+    path: /etc/sudoers.d/{{ admin_user }}
+    line: "{{ admin_user }} ALL=(ALL) NOPASSWD:ALL"
+    create: yes
+    mode: '0440'
+    validate: 'visudo -cf %s'
+  when: ansible_os_family == "RedHat"
+
+- name: Remove unnecessary users
+  user:
+    name: "{{ item }}"
+    state: absent
+  loop:
+    - games
+    - news
+    - uucp

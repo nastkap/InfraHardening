@@ -1,0 +1,229 @@
+pipeline {
+    agent any
+    
+    environment {
+        TERRAFORM_VERSION = '1.5.0'
+        ANSIBLE_VERSION = '2.15.0'
+        GO_VERSION = '1.21.0'
+        AZURE_SUBSCRIPTION_ID = credentials('azure-subscription-id')
+        AZURE_CLIENT_ID = credentials('azure-client-id')
+        AZURE_CLIENT_SECRET = credentials('azure-client-secret')
+        AZURE_TENANT_ID = credentials('azure-tenant-id')
+    }
+    
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
+        timeout(time: 2, unit: 'HOURS')
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                sh 'git clean -fdx'
+            }
+        }
+        
+        stage('Validate Terraform') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform version'
+                    sh 'terraform init -backend=false'
+                    sh 'terraform fmt -check'
+                    sh 'terraform validate'
+                }
+            }
+        }
+        
+        stage('Terraform Plan') {
+            steps {
+                dir('terraform') {
+                    sh """
+                        terraform init \
+                            -backend-config="resource_group_name=terraform-state-rg" \
+                            -backend-config="storage_account_name=terraformstatestorage" \
+                            -backend-config="container_name=terraform-state" \
+                            -backend-config="key=prod.terraform.tfstate"
+                    """
+                    sh 'terraform plan -out=tfplan'
+                }
+            }
+        }
+        
+        stage('Security Scan - Terraform') {
+            steps {
+                dir('terraform') {
+                    sh 'tfsec . --format json --out tfsec-report.json || true'
+                    recordIssues(tools: [tfSec(pattern: 'tfsec-report.json')])
+                }
+            }
+        }
+        
+        stage('Validate Ansible') {
+            steps {
+                dir('ansible') {
+                    sh 'ansible --version'
+                    sh 'ansible-lint site.yml || true'
+                    sh 'ansible-playbook site.yml --syntax-check'
+                }
+            }
+        }
+        
+        stage('Build Go Agent') {
+            steps {
+                dir('go-agent') {
+                    sh 'go version'
+                    sh 'go mod download'
+                    sh 'go build -v -o agent main.go'
+                    sh 'go test -v ./... || true'
+                }
+            }
+        }
+        
+        stage('Security Scan - Go') {
+            steps {
+                dir('go-agent') {
+                    sh 'gosec -fmt json -out gosec-report.json ./... || true'
+                    recordIssues(tools: [goLint(pattern: 'gosec-report.json')])
+                }
+            }
+        }
+        
+        stage('Python Linting') {
+            steps {
+                dir('scripts/python') {
+                    sh 'python3 --version'
+                    sh 'pip3 install -r requirements.txt'
+                    sh 'pylint azure_orchestrator.py --output-format=json --out pylint-report.json || true'
+                    sh 'bandit -r . -f json -o bandit-report.json || true'
+                }
+            }
+        }
+        
+        stage('Approval - Deploy') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    def userInput = input(
+                        id: 'deploy-approval',
+                        message: 'Approve deployment to production?',
+                        parameters: [
+                            string(name: 'DEPLOY_ENVIRONMENT', defaultValue: 'prod', description: 'Deployment environment')
+                        ]
+                    )
+                    env.DEPLOY_ENVIRONMENT = userInput.DEPLOY_ENVIRONMENT
+                }
+            }
+        }
+        
+        stage('Terraform Apply') {
+            when {
+                branch 'main'
+            }
+            steps {
+                dir('terraform') {
+                    sh 'terraform apply -auto-approve tfplan'
+                    sh 'terraform output -json > ../terraform-outputs.json'
+                }
+                archiveArtifacts artifacts: 'terraform-outputs.json', fingerprint: true
+            }
+        }
+        
+        stage('Generate Ansible Inventory') {
+            when {
+                branch 'main'
+            }
+            steps {
+                dir('scripts/bash') {
+                    sh './deploy_infrastructure.sh ansible'
+                }
+            }
+        }
+        
+        stage('Run Ansible Playbook') {
+            when {
+                branch 'main'
+            }
+            steps {
+                dir('ansible') {
+                    sh 'ansible-playbook -i inventory/hosts.ini site.yml -v'
+                }
+            }
+        }
+        
+        stage('Deploy Go Agent') {
+            when {
+                branch 'main'
+            }
+            steps {
+                dir('ansible') {
+                    sh '''
+                        ansible all -i inventory/hosts.ini -m copy \
+                            -a "src=../go-agent/agent dest=/usr/local/bin/agent mode=0755"
+                    '''
+                    sh '''
+                        ansible all -i inventory/hosts.ini -m copy \
+                            -a "src=../go-agent/systemd/agent.service dest=/etc/systemd/system/agent.service"
+                    '''
+                    sh 'ansible all -i inventory/hosts.ini -m systemd -a "name=agent daemon_reload=yes enabled=yes state=started"'
+                }
+            }
+        }
+        
+        stage('Health Checks') {
+            when {
+                branch 'main'
+            }
+            steps {
+                dir('scripts/bash') {
+                    sh './health_check.sh'
+                }
+            }
+        }
+        
+        stage('Export Inventory') {
+            when {
+                branch 'main'
+            }
+            steps {
+                dir('scripts/python') {
+                    sh """
+                        python3 azure_orchestrator.py \
+                            --subscription-id ${AZURE_SUBSCRIPTION_ID} \
+                            --tenant-id ${AZURE_TENANT_ID} \
+                            --client-id ${AZURE_CLIENT_ID} \
+                            --client-secret ${AZURE_CLIENT_SECRET} \
+                            --resource-group infra-hardening-rg \
+                            --action export-inventory \
+                            --output-file ../inventory.json \
+                            --format json
+                    """
+                }
+                archiveArtifacts artifacts: 'scripts/python/inventory.json', fingerprint: true
+            }
+        }
+    }
+    
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            emailext(
+                subject: "Jenkins Build Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: "Build completed successfully.",
+                to: "${env.CHANGE_AUTHOR_EMAIL}"
+            )
+        }
+        failure {
+            emailext(
+                subject: "Jenkins Build Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: "Build failed. Please check the console output.",
+                to: "${env.CHANGE_AUTHOR_EMAIL}"
+            )
+        }
+    }
+}

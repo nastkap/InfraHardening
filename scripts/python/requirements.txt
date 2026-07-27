@@ -1,0 +1,6 @@
+requests>=2.31.0
+pyyaml>=6.0
+azure-identity>=1.13.0
+azure-mgmt-resource>=23.0.0
+azure-mgmt-compute>=29.0.0
+azure-mgmt-network>=22.0.0

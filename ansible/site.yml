@@ -1,0 +1,13 @@
+---
+- name: Cloud Infrastructure Hardening
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - system-update
+    - ssh-hardening
+    - firewall-configuration
+    - user-management
+    - security-hardening
+    - monitoring-setup
